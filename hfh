@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pylab as plt
 import h5py
 from IPython.frontend.terminal.embed import InteractiveShellEmbed
+from traitlets.config.loader import Config
 import click
 
 @click.command()
@@ -15,7 +16,10 @@ def cli(files, amode):
         f = h5py.File(files[0], mode)
     else:
         f = [h5py.File(i, mode) for i in files]
-    shell = InteractiveShellEmbed()
+
+    c = Config()
+    c.TerminalInteractiveShell.banner2 = 'try: print(f)'
+    shell = InteractiveShellEmbed(config=c)
     shell.magic("matplotlib")
     shell()
     if "f" in locals():
