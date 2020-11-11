@@ -4,27 +4,29 @@ from pathlib import Path
 from typing import List
 import h5py
 
-@click.command()
-@click.argument("files", nargs=-1)
-@click.option("--amode", "-a", help="The append mode", is_flag=True, default=False)
-def cli(files, amode):
-    mode = "a" if amode else "r"
-    scripts = []
+__doc__ = """This command reads hdf5 files then puts them in a list `f`."""
 
-    def process_file(h5files:List, f: Path, mode):
-        if f.suffix == ".h5":
+
+def process_file(files, mode):
+    h5files = []
+    scripts = []
+    for i in map(Path, files):
+        if i.suffix == ".h5":
             h5files.append(h5py.File(i, mode))
         else:
-            scripts.append(f.absolute())
+            scripts.append(i.absolute())
+    return h5files, scripts
 
-    f = []
-    for i in files:
-        process_file(f, Path(i), mode)
+@click.command(help=__doc__)
+@click.argument("files", nargs=-1)
+@click.option("--mode", "-m", help="The append mode", default="r")
+def cli(files, mode):
+    f, scripts = process_file(files, mode)
     if len(f) == 1:
         f = f[0]
     for s in scripts:
         with s.open() as fp:
-            exec(fp.read())
+            exec(fp.read(), globals())
 
     import IPython
     import numpy as np
