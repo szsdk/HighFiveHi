@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import click
 from pathlib import Path
-from typing import List
 import h5py
+import IPython
 
 __doc__ = """This command reads hdf5 files then puts them in a list `f`."""
 
@@ -17,34 +17,28 @@ def process_file(files, mode):
             scripts.append(i.absolute())
     return h5files, scripts
 
+
+def load_scripts(scripts):
+    ns = dict()
+    for s in scripts:
+        with s.open() as fp:
+            exec(fp.read(), ns)
+    return ns
+
+
 @click.command(help=__doc__)
 @click.argument("files", nargs=-1)
 @click.option("--mode", "-m", help="The append mode", default="r")
 def cli(files, mode):
-    f, scripts = process_file(files, mode)
-    if len(f) == 1:
-        f = f[0]
-    for s in scripts:
-        with s.open() as fp:
-            exec(fp.read(), globals())
+    hf, scripts = process_file(files, mode)
+    ns = load_scripts(scripts)
+    ns["hf"] = hf[0] if len(hf) == 1 else hf
 
-    import IPython
-    import numpy as np
-    import matplotlib.pylab as plt
-    from IPython.terminal.embed import InteractiveShellEmbed
-    from traitlets.config.loader import Config
+    print("Try: print(hf)\n")
+    IPython.start_ipython(["--pylab", "--no-banner"], user_ns=ns)
 
-    c = Config()
-    c.TerminalInteractiveShell.banner2 = "Try: print(f)"
-    shell = InteractiveShellEmbed(config=c)
-    shell.magic("matplotlib")
-    shell()
-    if "f" in locals():
-        if isinstance(f, list):
-            for i in f:
-                i.close()
-        elif isinstance(f, h5py.File):
-            f.close()
+    for i in hf:
+        i.close()
 
 
 if __name__ == "__main__":
