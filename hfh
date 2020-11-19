@@ -1,21 +1,52 @@
 #!/usr/bin/env python3
+import time
 import click
 from pathlib import Path
-import h5py
 import IPython
 
 __doc__ = """This command reads hdf5 files then puts them in a list `f`."""
 
 
-def process_file(files, mode):
-    h5files = []
+def read_file(file, mode='r'):
+    suffix = Path(file).suffix.lower()
+    if suffix == ".h5":
+        import h5py
+        return h5py.File(file, mode)
+    if suffix == ".npy":
+        import numpy as np
+        return np.load(file)
+    if suffix in [".png", ".jpg"]:
+        import matplotlib.pyplot as plt
+        return plt.imread(file)
+    if suffix in [".pkl", ".pickle"]:
+        import pickle
+        with open(file, "rb") as fp:
+            return pickle.load(fp)
+    if suffix == ".json":
+        import json
+        with open(file) as fp:
+            return json.load(f)
+    if suffix == ".ini":
+        from configparser import ConfigParser
+        config = ConfigParser()
+        config.read(file)
+        return config
+    raise ValueError(f"Cannot parse {file}")
+
+
+def process_files(files, mode):
+    data_files = []
+    named_files = {}
     scripts = []
-    for i in map(Path, files):
-        if i.suffix == ".h5":
-            h5files.append(h5py.File(i, mode))
+    for i in files:
+        if i[0] == "@":
+            named_files[i[1:]] = data_files.pop()
+            continue
+        if i[-3:] == ".py":
+            scripts.append(Path(i).absolute())
         else:
-            scripts.append(i.absolute())
-    return h5files, scripts
+            data_files.append(read_file(i, mode))
+    return data_files, named_files, scripts
 
 
 def load_scripts(scripts):
@@ -30,16 +61,27 @@ def load_scripts(scripts):
 @click.argument("files", nargs=-1)
 @click.option("--mode", "-m", help="The append mode", default="r")
 def cli(files, mode):
-    hf, scripts = process_file(files, mode)
-    ns = load_scripts(scripts)
-    ns["hf"] = hf[0] if len(hf) == 1 else hf
+    df, named_files, scripts = process_files(files, mode)
+    ns = {'read_file': read_file}
+    ns.update(named_files)
+    ns.update(load_scripts(scripts))
+    if len(df) == 0:
+        pass
+    elif len(df) == 1:
+        ns["df"] = df[0]
+    elif len(df) > 1:
+        ns["df"] = df
 
-    print("Try: print(hf)\n")
+    print(time.time() - t0, "s")
+    print("Try: print({})\n".format(", ".join(ns.keys())))
     IPython.start_ipython(["--pylab", "--no-banner"], user_ns=ns)
 
-    for i in hf:
-        i.close()
+    import h5py
+    for i in df:
+        if isinstance(i, h5py.File):
+            i.close()
 
 
 if __name__ == "__main__":
+    t0 = time.time()
     cli()
