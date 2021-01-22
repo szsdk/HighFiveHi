@@ -9,9 +9,6 @@ __doc__ = """This command reads hdf5 files then puts them in a list `f`."""
 
 def read_file(file, mode='r'):
     suffix = Path(file).suffix.lower()
-    if suffix == ".h5":
-        import h5py
-        return h5py.File(file, mode)
     if suffix == ".npy":
         import numpy as np
         return np.load(file)
@@ -31,7 +28,11 @@ def read_file(file, mode='r'):
         config = ConfigParser()
         config.read(file)
         return config
-    raise ValueError(f"Cannot parse {file}")
+    import h5py
+    try:
+        return h5py.File(file, mode)
+    except:
+        raise ValueError(f"Cannot parse {file}")
 
 
 def process_files(files, mode):
