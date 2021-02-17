@@ -9,7 +9,7 @@ __doc__ = """This command reads hdf5 files then puts them in a list `f`."""
 
 def read_file(file, mode='r'):
     suffix = Path(file).suffix.lower()
-    if suffix == ".npy":
+    if suffix in [".npy", ".npz"]:
         import numpy as np
         return np.load(file)
     if suffix in [".png", ".jpg"]:
@@ -28,6 +28,9 @@ def read_file(file, mode='r'):
         config = ConfigParser()
         config.read(file)
         return config
+    if suffix in [".mrc", ".mrc.gz", ".mrc.bz2"]:
+        import mrcfile
+        return mrcfile.open(file)
     import h5py
     try:
         return h5py.File(file, mode)
@@ -77,9 +80,8 @@ def cli(files, mode):
     print("Try: print({})\n".format(", ".join(ns.keys())))
     IPython.start_ipython(["--pylab", "--no-banner"], user_ns=ns)
 
-    import h5py
     for i in df:
-        if isinstance(i, h5py.File):
+        if hasattr(i, "close") and callable(getattr(i, 'close')):
             i.close()
 
 
