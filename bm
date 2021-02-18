@@ -62,7 +62,7 @@ def _update(file_list, dry):
 @cli.command()
 @click.option("--file_list", type=str, default="binary_files.list")
 def update(file_list):
-    _update(file_list)
+    _update(file_list, False)
 
 
 @cli.command()
