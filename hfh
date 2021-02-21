@@ -4,11 +4,11 @@ import click
 from pathlib import Path
 import IPython
 
-__doc__ = """This command reads hdf5 files then puts them in a list `f`."""
+__doc__ = """This command reads hdf5 files then puts them in a list `df`."""
 
 
 def read_file(file, mode='r'):
-    suffix = Path(file).suffix.lower()
+    suffix = ("".join(Path(file).suffixes)).lower()
     if suffix in [".npy", ".npz"]:
         import numpy as np
         return np.load(file)
