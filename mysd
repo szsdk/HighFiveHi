@@ -3,6 +3,7 @@
 import re
 import click
 import fileinput
+from flashtext import KeywordProcessor
 
 
 class MysdCmd(click.Command):
@@ -31,10 +32,17 @@ class MysdCmd(click.Command):
 @click.option("--output", default="")
 @click.option("--string-mode", "-s", default=False, is_flag=True)
 def main(pattern, repl, input_txt, output, string_mode):
-    pattern = re.compile(pattern)
-    result = []
-    for line in fileinput.input(input_txt if len(input_txt) > 0 else "-"):
-        result.append(re.sub(pattern, repl, line))
+    if string_mode:
+        kp = KeywordProcessor()
+        kp.add_keywords_from_dict({repl: pattern.split("|")})
+        result = []
+        for line in fileinput.input(input_txt if len(input_txt) > 0 else "-"):
+            result.append(kp.replace_keywords(line))
+    else:
+        pattern = re.compile(pattern)
+        result = []
+        for line in fileinput.input(input_txt if len(input_txt) > 0 else "-"):
+            result.append(re.sub(pattern, repl, line))
     result = "".join(result)
     if len(output) == 0:
         print(result)
