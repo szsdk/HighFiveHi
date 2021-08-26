@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 
 import logging
-logging.basicConfig(level=logging.INFO)
 from hashlib import blake2b
 import click
 from pathlib import Path
 import json
 
+logging.basicConfig(level=logging.INFO)
+
+
 @click.group()
 def cli():
     """
     This is the binary files managers.
+    The default JSON file is `binary_files.list`.
     """
     ...
+
 
 def read_cache():
     cache_f = Path(".binary_files.json")
@@ -21,10 +25,12 @@ def read_cache():
             return json.load(fp)
     return {}
 
+
 def write_cache(cache_info):
     cache_f = Path(".binary_files.json")
     with cache_f.open("w") as fp:
         json.dump(cache_info, fp)
+
 
 def read_fl(file_list):
     f = Path(file_list)
@@ -32,8 +38,9 @@ def read_fl(file_list):
         raise SystemExit(f"File {f} does not exist.")
     fl = []
     with Path(file_list).open("r") as fp:
-        fl = [Path(l.strip()) for l in fp]
+        fl = [Path(line.strip()) for line in fp]
     return fl
+
 
 def _update(file_list, dry):
     fl = read_fl(file_list)
@@ -43,7 +50,8 @@ def _update(file_list, dry):
     for f in fl:
         hash_f = Path(f"{f}.blake2")
         mtime = f.stat().st_mtime
-        if str(mtime) == cache_info.get(str(f), "") and mtime < hash_f.stat().st_mtime:
+        if str(mtime) == cache_info.get(str(f), "") and\
+                mtime < hash_f.stat().st_mtime:
             ...
         else:
             updated = True
@@ -59,10 +67,15 @@ def _update(file_list, dry):
         write_cache(cache_info)
     return updated
 
+
 @cli.command()
 @click.option("--file_list", type=str, default="binary_files.list")
 def update(file_list):
-    _update(file_list, False)
+    flag = _update(file_list, False)
+    if flag:
+        exit(1)
+    else:
+        exit(0)
 
 
 @cli.command()
@@ -70,10 +83,11 @@ def update(file_list):
 @click.option("--output", default="binary_files.zip")
 def zip(file_list, output):
     from zipfile import ZipFile
+
     if _update(file_list, True):
-        logging.warning("Some files are modified.")
+        logging.warning("Some binary files are modified.")
         return
-    with ZipFile(output, 'w') as zipObj:
+    with ZipFile(output, "w") as zipObj:
         for f in read_fl(file_list):
             zipObj.write(f)
 
@@ -82,7 +96,7 @@ def zip(file_list, output):
 @click.option("--zip_file", default="binary_files.zip")
 def unzip(zip_file):
     from zipfile import ZipFile
-    with ZipFile(zip_file, 'r') as zipObj:
+    with ZipFile(zip_file, "r") as zipObj:
         for file_name in zipObj.namelist():
             zipObj.extract(file_name, "./")
 
