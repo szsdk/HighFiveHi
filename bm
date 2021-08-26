@@ -50,8 +50,7 @@ def _update(file_list, dry):
     for f in fl:
         hash_f = Path(f"{f}.blake2")
         mtime = f.stat().st_mtime
-        if str(mtime) == cache_info.get(str(f), "") and\
-                mtime < hash_f.stat().st_mtime:
+        if str(mtime) == cache_info.get(str(f), "") and mtime < hash_f.stat().st_mtime:
             ...
         else:
             updated = True
@@ -96,6 +95,7 @@ def zip(file_list, output):
 @click.option("--zip_file", default="binary_files.zip")
 def unzip(zip_file):
     from zipfile import ZipFile
+
     with ZipFile(zip_file, "r") as zipObj:
         for file_name in zipObj.namelist():
             zipObj.extract(file_name, "./")
