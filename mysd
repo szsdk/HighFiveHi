@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+
+import re
+import click
+import fileinput
+
+
+class MysdCmd(click.Command):
+    def parse_args(self, ctx, args):
+        if len(args) >= 2:
+            a1, args = args[:2], args[2:]
+            if len(args) > 0 and args[0][0] != '-':
+                a1.append(args.pop(0))
+            args.insert(0, "--pattern")
+            args.insert(1, a1[0])
+            args.insert(0, "--repl")
+            args.insert(1, a1[1])
+            if len(a1) == 3:
+                args.insert(0, "--input-txt")
+                args.insert(1, a1[2])
+        return super(MysdCmd, self).parse_args(ctx, args)
+
+    def format_usage(self, ctx, formatter):
+        click.echo("Usage: mysd <pattern> <replcement> [input file] [OPTIONS]")
+
+
+@click.command(cls=MysdCmd)
+@click.option("--pattern", hidden=True)
+@click.option("--repl", hidden=True)
+@click.option("--input-txt", default="", hidden=True)
+@click.option("--output", default="")
+@click.option("--string-mode", "-s", default=False, is_flag=True)
+def main(pattern, repl, input_txt, output, string_mode):
+    pattern = re.compile(pattern)
+    result = []
+    for line in fileinput.input(input_txt if len(input_txt) > 0 else "-"):
+        result.append(re.sub(pattern, repl, line))
+    result = "".join(result)
+    if len(output) == 0:
+        print(result)
+    else:
+        with open(output, "w") as fp:
+            print(result, file=fp)
+
+
+if __name__ == "__main__":
+    main()
