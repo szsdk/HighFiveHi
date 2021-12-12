@@ -13,7 +13,16 @@ logging.basicConfig(level=logging.INFO)
 def cli():
     """
     This is the binary files managers.
-    The default JSON file is `binary_files.list`.
+    The default file is `binary_files.list`.
+
+    Uploading workflow:
+        1. list all binary files to be managed in a file, such as `binary_files.list`
+        2. `bm update`
+        3. `bm zip`
+        4. upload with `gh`
+    Downloading workflow:
+        1. After download the correct released binary zipped file, using `bm unzip` to decompress
+        binary files.
     """
     ...
 
