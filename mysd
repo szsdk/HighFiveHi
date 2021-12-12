@@ -41,10 +41,10 @@ def main(pattern, repl, input_txt, output, flags):
         result.append(pattern.sub(repl, line))
     result = "".join(result)
     if len(output) == 0:
-        print(result)
+        print(result, end='')
     else:
         with open(output, "w") as fp:
-            print(result, file=fp)
+            print(result, file=fp, end='')
 
 
 if __name__ == "__main__":
