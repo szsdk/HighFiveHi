@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import time
-import click
-import rich
 import re
 from pathlib import Path
+from typing import Union
+
+import click
+import rich
 import IPython
+import h5py
 
 __doc__ = """This command reads hdf5 files then puts them in a list `df`."""
 
@@ -49,12 +52,11 @@ def read_file(file: str, mode: str = "r"):
         import mrcfile
 
         return mrcfile.open(file)
-    import h5py
 
     try:
         return h5py.File(file, mode)
-    except:
-        raise ValueError(f"Cannot parse {file}")
+    except OSError:
+        print(f"Cannot parse {file}")
 
 
 def _process_files(files, mode):
@@ -89,11 +91,27 @@ def _print_h5(n, g):
     rich.print(g)
     if len(g.attrs) > 0:
         rich.print(dict(g.attrs))
-        # for k, v in g.attrs.items():
-            # print(k, v)
 
 
-def visit(fp, match="", func=None):
+def visit(fp: Union[h5py.File, h5py.Group], match: str = "", func=None) -> None:
+    """
+    visit h5
+
+    Parameters
+    ----------
+    fp : Optional[h5py.File, h5py.Group]
+        The input file pointer.
+    match : str
+        The regex for filtering name
+    func : Callable
+        Signature: (group_name, group)->None
+
+    Returns
+    -------
+    None
+    """
+    if not isinstance(fp, (h5py.File, h5py.Group)):
+        raise TypeError("fp should be h5py.File or h5py.Group.")
     if func is None:
         func = _print_h5
     if match == "":
@@ -116,10 +134,7 @@ hfh t.h5 @a
 def cli(files, mode):
     t0 = time.time()
     df, named_files, scripts = _process_files(files, mode)
-    ns = {
-        "read_file": read_file,
-        "visit": visit
-    }
+    ns = {"read_file": read_file, "visit": visit}
     ns.update(named_files)
     ns.update(_load_scripts(scripts))
     if len(df) == 0:
