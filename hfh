@@ -93,7 +93,7 @@ def _print_h5(n, g):
         rich.print(dict(g.attrs))
 
 
-def visit(fp: Union[h5py.File, h5py.Group], match: str = "", func=None) -> None:
+def visit(fp: Union[h5py.File, h5py.Group], match: str = "", func=_print_h5) -> None:
     """
     visit h5
 
@@ -112,8 +112,6 @@ def visit(fp: Union[h5py.File, h5py.Group], match: str = "", func=None) -> None:
     """
     if not isinstance(fp, (h5py.File, h5py.Group)):
         raise TypeError("fp should be h5py.File or h5py.Group.")
-    if func is None:
-        func = _print_h5
     if match == "":
         fp.visititems(func)
     else:
