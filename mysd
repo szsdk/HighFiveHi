@@ -22,14 +22,14 @@ class MysdCmd(HelpColorsCommand):
 
 @click.command(
     cls=MysdCmd,
-    context_settings=dict(help_option_names=['-h', '--help']),
-    help_headers_color='yellow',
-    help_options_color='green'
+    context_settings=dict(help_option_names=["-h", "--help"]),
+    help_headers_color="yellow",
+    help_options_color="green",
 )
 @click.option("--pattern", hidden=True)
 @click.option("--repl", hidden=True)
 @click.option("--input-txt", default="", hidden=True)
-@click.option("--output", default="", help='the output file')
+@click.option("--output", default="", help="the output file")
 @click.option("--flags", "-f", default="", help="i - case-insensitive")
 def main(pattern, repl, input_txt, output, flags):
     if "i" in flags:
@@ -41,10 +41,10 @@ def main(pattern, repl, input_txt, output, flags):
         result.append(pattern.sub(repl, line))
     result = "".join(result)
     if len(output) == 0:
-        print(result)
+        print(result, end="")
     else:
         with open(output, "w") as fp:
-            print(result, file=fp)
+            print(result, file=fp, end="")
 
 
 if __name__ == "__main__":

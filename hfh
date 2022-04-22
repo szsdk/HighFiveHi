@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
 import time
-import click
+import re
 from pathlib import Path
+from typing import Union
+
+import click
+import rich
 import IPython
+import h5py
 
 __doc__ = """This command reads hdf5 files then puts them in a list `df`."""
 
 
-def read_file(file, mode="r"):
+def read_file(file: str, mode: str = "r"):
+    """
+    Read a file
+
+    Parameters
+    ----------
+    file : str
+        filename
+    mode : str
+        reading mode for HDF5 files
+    """
     suffix = ("".join(Path(file).suffixes)).lower()
     if suffix in [".npy", ".npz"]:
         import numpy as np
@@ -37,30 +52,28 @@ def read_file(file, mode="r"):
         import mrcfile
 
         return mrcfile.open(file)
-    import h5py
 
     try:
         return h5py.File(file, mode)
-    except:
-        raise ValueError(f"Cannot parse {file}")
+    except OSError:
+        print(f"Cannot parse {file}")
 
 
-def process_files(files, mode):
+def _process_files(files, mode):
     data_files = []
     named_files = {}
     scripts = []
     for i in files:
         if i[0] == "@":
             named_files[i[1:]] = data_files.pop()
-            continue
-        if i[-3:] == ".py":
+        elif i[-3:] == ".py":
             scripts.append(Path(i).absolute())
         else:
             data_files.append(read_file(i, mode))
     return data_files, named_files, scripts
 
 
-def load_scripts(scripts):
+def _load_scripts(scripts):
     ns = dict()
     for s in scripts:
         with s.open() as fp:
@@ -68,14 +81,60 @@ def load_scripts(scripts):
     return ns
 
 
-@click.command(help=__doc__)
+def _filter_first(n, g, match, func):
+    name = n.split("/")[-1]
+    if match.search(name):
+        func(n, g)
+
+
+def _print_h5(n, g):
+    rich.print(g)
+    if len(g.attrs) > 0:
+        rich.print(dict(g.attrs))
+
+
+def visit(fp: Union[h5py.File, h5py.Group], match: str = "", func=_print_h5) -> None:
+    """
+    visit h5
+
+    Parameters
+    ----------
+    fp : Optional[h5py.File, h5py.Group]
+        The input file pointer.
+    match : str
+        The regex for filtering name
+    func : Callable
+        Signature: (group_name, group)->None
+
+    Returns
+    -------
+    None
+    """
+    if not isinstance(fp, (h5py.File, h5py.Group)):
+        raise TypeError("fp should be h5py.File or h5py.Group.")
+    if match == "":
+        fp.visititems(func)
+    else:
+        match_re = re.compile(match)
+        fp.visititems(lambda n, g: _filter_first(n, g, match_re, func))
+
+
+@click.command(
+    help="""
+read data from `t.h5` into variable a
+hfh t.h5 @a
+"""
+)
 @click.argument("files", nargs=-1)
-@click.option("--mode", "-m", help="The append mode", default="r")
+@click.option(
+    "--mode", "-m", help="The reading mode for HDF5 files [a|r|w]", default="r"
+)
 def cli(files, mode):
-    df, named_files, scripts = process_files(files, mode)
-    ns = {"read_file": read_file}
+    t0 = time.time()
+    df, named_files, scripts = _process_files(files, mode)
+    ns = {"read_file": read_file, "visit": visit}
     ns.update(named_files)
-    ns.update(load_scripts(scripts))
+    ns.update(_load_scripts(scripts))
     if len(df) == 0:
         pass
     elif len(df) == 1:
@@ -83,8 +142,8 @@ def cli(files, mode):
     elif len(df) > 1:
         ns["df"] = df
 
-    print(time.time() - t0, "s")
-    print("Try: print({})\n".format(", ".join(ns.keys())))
+    rich.print(f"reading time: {time.time() - t0:.4f} s")
+    rich.print("Try: print({})\n".format(", ".join(ns.keys())))
     IPython.start_ipython(["--pylab", "--no-banner"], user_ns=ns)
 
     for i in df:
@@ -93,5 +152,4 @@ def cli(files, mode):
 
 
 if __name__ == "__main__":
-    t0 = time.time()
     cli()
