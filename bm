@@ -5,8 +5,9 @@ from hashlib import blake2b
 import click
 from pathlib import Path
 import json
+from rich.logging import RichHandler
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()])
 
 
 @click.group()
@@ -67,7 +68,7 @@ def _update(file_list, dry):
                 with f.open("rb") as f_src, hash_f.open("w") as f_hash:
                     s = blake2b(f_src.read())
                     print(s.hexdigest(), file=f_hash)
-                logging.info(f"Write hash info to {hash_f}")
+                logging.info(f"Write hash info to [green]{hash_f}[/green]", extra={"markup": True})
                 cache_info[str(f)] = str(mtime)
             else:
                 logging.info(f"Hash of {f} should be recaculated.")
@@ -93,7 +94,7 @@ def zip(file_list, output):
     from zipfile import ZipFile
 
     if _update(file_list, True):
-        logging.warning("Some binary files are modified.")
+        logging.warning("Some binary files are modified. No zip file generated.")
         return
     with ZipFile(output, "w") as zipObj:
         for f in read_fl(file_list):
@@ -108,6 +109,27 @@ def unzip(zip_file):
     with ZipFile(zip_file, "r") as zipObj:
         for file_name in zipObj.namelist():
             zipObj.extract(file_name, "./")
+
+
+@cli.command()
+@click.argument("toadd", nargs=-1)
+@click.option("--file_list", type=str, default="binary_files.list")
+def add(toadd, file_list):
+    fl = []
+    with open(file_list) as fp:
+        for line in fp:
+            fl.append(Path(line.strip()))
+    for f in map(Path, toadd):
+        if f not in fl:
+            logging.info(f"Adding [green]{f}[/green]", extra={"markup": True})
+            fl.append(f)
+    else:
+        logging.warning("No new file added")
+        return
+
+    with open(file_list, "w") as fp:
+        for f in fl:
+            print(f, file=fp)
 
 
 if __name__ == "__main__":

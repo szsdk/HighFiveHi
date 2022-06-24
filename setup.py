@@ -5,5 +5,5 @@ setup(
     version="0.2",
     author="szsdk",
     scripts=["hfh", "bm", "mysd"],
-    install_requires=["click", "IPython", "click_help_colors"],
+    install_requires=["click", "IPython", "click_help_colors", "rich"],
 )
