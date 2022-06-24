@@ -48,7 +48,7 @@ def read_file(file: str, mode: str = "r"):
         config = ConfigParser()
         config.read(file)
         return config
-    if suffix in [".mrc", ".mrc.gz", ".mrc.bz2"]:
+    if suffix in [".mrc", ".mrc.gz", ".mrc.bz2", ".ccp4"]:
         import mrcfile
 
         return mrcfile.open(file)
